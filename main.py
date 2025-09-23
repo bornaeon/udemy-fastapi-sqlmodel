@@ -1,6 +1,6 @@
 from fastapi import FastAPI, responses, HTTPException, status
 from sqlmodel import Session, select
-from models import Category, CategoryBase
+from models import Category, CategoryBase, Video, VideoBase
 from database import engine
 import uvicorn
 
@@ -17,6 +17,7 @@ async def home():
         <p>Here is the <a href="/docs">docs</a>
     '''
 
+# region Categories
 # Get all categories
 @api.get('/category', response_model = list[Category])
 async def get_categories():
@@ -91,6 +92,25 @@ async def delete_category(category_id: int):
         # Execute the DELETE and save changes to database
         session.commit()
         return current_category
+# endregion Categories
+
+# region Videos
+# Get all videos
+@api.post('/video', status_code = status.HTTP_201_CREATED)
+async def post_video(video: VideoBase):
+    # create a new video object from the data passed in
+    new_video = Video.model_validate(video)
+    # check if the video has a valid category id
+    if not await is_category_exists(new_video.category_id):
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Category not found")
+    # post the video
+    with Session(engine) as session:
+        session.add(new_video)
+        session.commit()
+        session.refresh(new_video)
+    return new_video
+
+# endregion Videos
 
 
 # VALIDATION FUNCTIONS
