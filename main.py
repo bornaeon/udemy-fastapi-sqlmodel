@@ -2,6 +2,7 @@ from fastapi import FastAPI, responses, HTTPException, status
 from sqlmodel import Session, select
 from models import Category, CategoryBase, Video, VideoBase
 from database import engine
+from datetime import datetime
 import uvicorn
 
 # App
@@ -24,11 +25,11 @@ async def get_categories():
     with Session(engine) as session:
         return session.exec(select(Category)).all()
 
-# Get all categories in 
-@api.get('/category', response_model = list[Category])
-async def get_categories():
-    with Session(engine) as session:
-        return session.exec(select(Category).order_by(Category.name.desc())).all()
+# Get all categories in order by name
+# @api.get('/category', response_model = list[Category])
+# async def get_categories():
+#    with Session(engine) as session:
+#        return session.exec(select(Category).order_by(Category.name.desc())).all()
 
 # Post a new categoy
 @api.post('/category')
@@ -91,7 +92,7 @@ async def delete_category(category_id: int):
         session.delete(current_category)
         # Execute the DELETE and save changes to database
         session.commit()
-        return current_category
+        return { 'Deleted' : category_id }
 # endregion Categories
 
 # region Videos
@@ -110,6 +111,36 @@ async def post_video(video: VideoBase):
         session.refresh(new_video)
     return new_video
 
+# Delete a video by setting is_active to False
+@api.delete('/video/{video_id}', response_model = Video)
+async def delete_video(video_id: int):
+    if not await is_active_video(video_id):
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Video not found")
+    with Session(engine) as session:
+        # Get the existing video from database
+        current_video = session.get(Video, video_id)
+        # Delete the video from database
+        current_video.is_active = False
+        current_video.date_last_modified = datetime.now()
+        # Execute the DELETE and save changes to database
+        session.commit()
+    return { 'Deleted': video_id }
+
+# Undelete a video by setting is_active to True
+@api.delete('/video/{video_id}/undelete', response_model = Video)
+async def undelete_video(video_id: int):
+    with Session(engine) as session:
+        # Get the existing video from database
+        current_video = session.get(Video, video_id)
+        if not current_video:
+            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Video not found")
+        # Restore the video
+        current_video.is_active = True
+        current_video.date_last_modified = datetime.now()
+        # Execute the DELETE and save changes to database
+        session.commit()
+    return { 'Restored': video_id }
+
 # endregion Videos
 
 
@@ -121,6 +152,11 @@ async def is_category_exists(category_id: int):
 
 async def is_category_name_exists(name: str):
     if session.exec(select(Category).where(Category.name == name)).one_or_none():
+        return True
+    return False
+
+async def is_active_video(video_id: int):
+    if session.exec(select(Video).where(Video.id == video_id, Video.is_active)).one_or_none():
         return True
     return False
 
