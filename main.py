@@ -1,6 +1,6 @@
 from fastapi import FastAPI, responses, HTTPException, status
 from sqlmodel import Session, select
-from models import Category, CategoryBase, Video, VideoBase
+from models import Category, CategoryBase, Video, VideoBase, CategorisedVideos
 from database import engine
 from datetime import datetime
 import uvicorn
@@ -31,6 +31,15 @@ async def get_categories():
 #    with Session(engine) as session:
 #        return session.exec(select(Category).order_by(Category.name.desc())).all()
 
+# Get a category
+@api.get('/category/{category_id}', response_model = Category)
+async def find_category(category_id: int):
+    with Session(engine) as session:
+        category = session.get(Category, category_id)
+        if not await is_category_exists(category_id):
+            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Category not found")
+        return category
+
 # Post a new categoy
 @api.post('/category')
 async def create_category(category: CategoryBase):
@@ -52,15 +61,6 @@ async def create_category(category: CategoryBase):
         session.refresh(new_category)
         
         return new_category
-
-# Get a category
-@api.get('/category/{category_id}', response_model = Category)
-async def find_category(category_id: int):
-    with Session(engine) as session:
-        category = session.get(Category, category_id)
-        if not await is_category_exists(category_id):
-            raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Category not found")
-        return category
 
 # Update a category
 @api.put('/category/{category_id}', response_model = Category)
@@ -85,6 +85,9 @@ async def update_category(category_id: int, category: CategoryBase):
 async def delete_category(category_id: int):
     if not await is_category_exists(category_id):
         raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Category not found")
+    # Check if the category has videos, then don't delete it
+    if await count_videos(category_id) > 0:
+        raise HTTPException(status_code = status.HTTP_403_FORBIDDEN, detail = "Category has videos")
     with Session(engine) as session:
         # Get the existing category from database
         current_category = session.get(Category, category_id)
@@ -96,7 +99,22 @@ async def delete_category(category_id: int):
 # endregion Categories
 
 # region Videos
-# Get all videos
+# Get all active videos
+@api.get('/video', response_model = list[Video])
+async def get_videos():
+    with Session(engine) as session:
+        return session.exec(select(Video).where(Video.is_active).order_by(Video.date_created)).all()
+
+# Get a video
+@api.get('/video/{video_id}', response_model = Video)
+async def find_video(video_id: int):
+    if not await is_active_video(video_id):
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "video not found")
+    with Session(engine) as session:
+        video = session.get(Video, video_id)
+        return video
+
+# Post a new video
 @api.post('/video', status_code = status.HTTP_201_CREATED)
 async def post_video(video: VideoBase):
     # create a new video object from the data passed in
@@ -110,6 +128,28 @@ async def post_video(video: VideoBase):
         session.commit()
         session.refresh(new_video)
     return new_video
+
+# Update a video
+@api.put('/video/{video_id}', response_model = Video)
+async def update_video(video_id: int, updated_video: VideoBase):
+    if not await is_active_video(video_id):
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "video not found")
+    if not await is_category_exists(updated_video.category_id):
+        raise HTTPException(status_code = status.HTTP_404_NOT_FOUND, detail = "Category not found")
+    with Session(engine) as session:
+        # Get the existing video from database
+        current_video = session.get(Video, video_id)
+        # Define a dictionary to loop thorugh fields
+        video_dict = updated_video.model_dump(exclude_unset=True)
+        # Loop is an alternative to doing each field on sepated lines
+        for key, value in video_dict.items():
+            setattr(current_video, key, value)
+        current_video.date_last_modified = datetime.now()
+        # Execute the UPDATE and save changes to database
+        session.commit()
+        # Reload object with latest database data
+        session.refresh(current_video)
+        return current_video
 
 # Delete a video by setting is_active to False
 @api.delete('/video/{video_id}', response_model = Video)
@@ -143,8 +183,22 @@ async def undelete_video(video_id: int):
 
 # endregion Videos
 
+# region Joins
+@api.get('/categorised_videos', response_model = list[CategorisedVideos])
+async def get_category_videos():
+    return session.exec(
+        select(
+            Category.name.label('category_name'), 
+            Video.title,
+            Video.youtube_code
+        )
+        .join(Video)
+        .where(Video.is_active)
+        .order_by(Category.name, Video.title)
+    ).all()
+# endregion Joins
 
-# VALIDATION FUNCTIONS
+# region Validation Functions
 async def is_category_exists(category_id: int):
     if session.get(Category, category_id):
         return True
@@ -160,6 +214,12 @@ async def is_active_video(video_id: int):
         return True
     return False
 
+async def count_videos(category_id: int):
+    rows = session.exec(
+        select(Video.category_id).where(Video.category_id == category_id, Video.is_active)
+    ).all()
+    return len(rows)
+# endregion Validation Functions
 
 # For debugging with breakpoints
 if __name__ == '__main__':

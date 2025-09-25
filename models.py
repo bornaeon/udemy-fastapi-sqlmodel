@@ -21,3 +21,9 @@ class Video(VideoBase, table = True):
     is_active: bool = Field(default = True)
     date_created: datetime = Field(default_factory = datetime.now, nullable = False)
     date_last_modified: Optional[datetime] = Field(default = None, nullable = True)
+
+# CategorisedVideos class for reading join tables
+class CategorisedVideos(SQLModel):
+    category_name: str
+    title: str
+    youtube_code: str
