@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, responses, HTTPException, status, Form
 from sqlmodel import Session, select
-from models import Video, Category
+from models import Video
 from database import engine
 from datetime import datetime
 from fastapi.templating import Jinja2Templates
@@ -70,15 +70,3 @@ async def delete_video_form(video_id: int):
         current_video.date_last_modified = datetime.now()
         session.commit()
     return responses.RedirectResponse(url="/list_video_form", status_code=status.HTTP_302_FOUND)
-
-# Send an HTML of videos with click-to-edit form
-@router.get('/list_video_form', response_class=responses.HTMLResponse)
-async def get_list_video_form(request: Request):
-    with Session(engine) as session:
-        active_videos = session.exec(
-            select(Video.id, Video.title, Video.youtube_code, Category.name.label('category_name'))
-            .join(Category)
-            .where(Video.is_active)
-            .order_by(Video.title)
-        ).all()
-    return templates.TemplateResponse('form_list_video.html', {'request': request, 'videos': active_videos, 'page_title': 'List Videos'})

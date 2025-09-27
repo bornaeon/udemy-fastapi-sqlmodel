@@ -4,7 +4,7 @@
     <table>
         <thead>
             <tr>
-                <th>Edit</th>
+                <th>Edit | Delete</th>
                 <th>Title</th>
                 <th>Category</th>
                 <th>Youtube Code</th>
@@ -15,8 +15,7 @@
                 <tr>
                     <td>
                         <span class="edit-button"><a href="{{ request.base_url }}edit_video_form/{{ video.id }}">Edit</a></span>
-                    </td>
-                    <td>
+                        |
                         <span class="delete-button"><a href="{{ request.base_url }}delete_video_form/{{ video.id }}">Delete</a></span>
                     </td>
                     <td>{{ video.title }}</td>

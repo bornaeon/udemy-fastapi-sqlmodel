@@ -1,6 +1,7 @@
 # Video Management API
 
-A modern FastAPI application for managing videos and categories using SQLModel, featuring both REST API endpoints and HTML forms for user interaction.
+A modern FastAPI application for managing videos and categories using SQLModel, featuring both REST API endpoints and HTML forms for user interaction.<br />
+From the Udemy course: <a href="https://www.udemy.com/course/hands-on-beginner-fastapi-and-sqlmodel/">Hands-On Beginner FastAPI and SQLModel</a>.
 
 ## 🚀 Features
 

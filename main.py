@@ -20,7 +20,7 @@ templates = Jinja2Templates(directory="templates")
 api.include_router(categories.router, prefix="/api", tags=["categories"])
 api.include_router(videos.router, prefix="/api", tags=["videos"])
 api.include_router(forms.router, tags=["forms"])
-api.include_router(joins.router, prefix="/api", tags=["joins"])
+api.include_router(joins.router, tags=["joins"])  # No prefix since it has form routes
 
 # Home page
 @api.get('/', response_class=responses.HTMLResponse)
