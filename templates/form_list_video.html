@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="form-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Edit</th>
+                <th>Title</th>
+                <th>Category</th>
+                <th>Youtube Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for video in videos %}
+                <tr>
+                    <td>
+                        <span class="edit-button"><a href="{{ request.base_url }}edit_video_form/{{ video.id }}">Edit</a></span>
+                    </td>
+                    <td>
+                        <span class="delete-button"><a href="{{ request.base_url }}delete_video_form/{{ video.id }}">Delete</a></span>
+                    </td>
+                    <td>{{ video.title }}</td>
+                    <td>{{ video.category_name }}</td>
+                    <td><a href="https://www.youtube.com/watch?v={{video.youtube_code}}" target="_blank">{{ video.youtube_code }}</a></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

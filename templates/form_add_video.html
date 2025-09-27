@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+<form method="post" action="submit_video">
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" required maxlength="128">
+    <label for="youtube_code">Youtube Code:</label>
+    <input type="text" id="youtube_code" name="youtube_code" required minlength="11" maxlength="11">
+    <label for="category_id">Category:</label>
+    <select id="category_id" name="category_id" required>
+        {% for category in categories %}
+            <option value="{{ category.id }}">{{ category.name }}</option>
+        {% endfor %}
+    </select>
+    <input type="submit" value="Submit">
+    <input type="reset" value="Cancel" onclick="window.location.href='{{ request.base_url }}list_video_form'">
+</form>
+{% endblock %}
