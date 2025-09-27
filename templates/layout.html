@@ -9,8 +9,8 @@
 <body>
     <header><h1>Video Manager</h1></header>
     <nav>
+        <a href="{{ request.base_url }}list_video_form">List of Videos</a>
         <a href="{{ request.base_url }}add_video_form">Add a Video</a>
-        <a href="{{ request.base_url }}list_video_form">List Videos</a>
     </nav>
     <main>
         {% block content %}
